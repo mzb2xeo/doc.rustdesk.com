@@ -81,3 +81,38 @@ https://github.com/rustdesk/rustdesk-server-pro/discussions/372#discussioncommen
 `rustdesk.exe --config <config-string>`
 
 You can get the config string from web console (you can see it on above picture) or from RustDesk client "Settings → Network" ([here](https://github.com/rustdesk/rustdesk/discussions/7118) is a discussion about this).
+
+### 7. WINDOWS `.exe` with public key 
+
+**Step 1: Retrieve and Display the Public Key**
+
+ - To get the public key of your server, run the following command:
+ ```bash
+ cat /var/lib/rustdesk-server/id_ed25519.pub; echo
+ ```  
+    
+ - This will display the public key, which is used by clients to connect to your server. In this example, the output is:
+
+   `kMtF+J8VMGEk2iLmUQ6AbVDkVRKce9r+p8n4YuQfl+c=`
+
+***Note: Files `id_ed25519` and `id_ed25519.pub` are used to encrypt communication between clients and servers. If you want to generate a new keypair, delete these two files and restart your services. Otherwise, use the existing ones.***
+
+**Step 2: Obtain the RustDesk Client**
+
+ - Download the latest RustDesk client from the official GitHub repository: [https://github.com/rustdesk/rustdesk/releases/latest](https://github.com/rustdesk/rustdesk/releases/latest)
+
+**Step 3: Configure the Client to Connect to Your Server**
+
+ - To connect your client to your server, you'll need to rename the downloaded `.exe` file to include the server's IP address or URL and the public key.
+
+ - For example, if your server's IP address is `192.168.1.243` and the public key from above,  the file name should be:
+
+`rustdesk-host=192.168.1.243,key=kMtF+J8VMGEk2iLmUQ6AbVDkVRKce9r+p8n4YuQfl+c=.exe`  
+
+**Step 4: Run the Client**
+
+ - After renaming the `.exe` file, run the client by double-clicking on it. The client window should appear and any other clients should show up in the client automatically. 
+
+**Troubleshooting Tips**
+    * Make sure you have the correct public key displayed in the `id_ed25519.pub` file.
+    * Verify that the downloaded `.exe` file has the correct name and format (e.g., `rustdesk-host=<IP or URL>,key=<public_key>.exe`).  
