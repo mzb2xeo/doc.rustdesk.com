@@ -8,7 +8,7 @@ pre: "<b>2.4. </b>"
 #### ___Support the project by purchasing a Pro license and get access to the [custom client generator](https://rustdesk.com/docs/en/self-host/client-configuration/#1-custom-client-generator-pro-only-basic-plan-or-custom-plan)___
 ---
 ### Steps to deploy using the below scripts: 
-1. [Mannually configure the client](https://rustdesk.com/docs/en/self-host/client-configuration/#2-manual-config) 
+1. [Manually configure the client](https://rustdesk.com/docs/en/self-host/client-configuration/#2-manual-config) 
 2. [Export the server config string](https://rustdesk.com/docs/en/self-host/client-configuration/#3-setup-using-import-or-export) (Steps 1-4).
 3. Copy the required script to an editor.   
     a. Set the $rustdesk_pw=()         
