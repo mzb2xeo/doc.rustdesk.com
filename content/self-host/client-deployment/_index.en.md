@@ -123,7 +123,8 @@ Write-Output "..............................................."
 ```
 
 ## Windows batch/cmd
- - This script does NOT have the ability to generate a randomized password 
+ - This script does NOT have the ability to generate a randomized password
+ - The link in the curl command needs to be manually updated. 
 
 ```bat
 @echo off
@@ -134,42 +135,33 @@ set rustdesk_pw="Password1@"
 REM  Get your config string from Client > Network > ID/Relay server > Export (copy icon)
 set rustdesk_cfg="config string goes here"
 
-setlocal EnableDelayedExpansion
-
-REM Create Temp directory if it doesn't exist
 if not exist C:\Temp\ md C:\Temp\
 cd C:\Temp\
 
-REM Function to get the latest release from GitHub
-for /f "delims=," %%A in ('curl -s https://api.github.com/repos/rustdesk/rustdesk/releases/latest ^| findstr tag_name') do set latest_release=%%A
-REM Remove quotes and leading 'v' if present
-set latest_release=%latest_release:"=%
-set latest_release=%latest_release:v=%
+REM Did you update the version in the curl link?
+curl -L "https://github.com/rustdesk/rustdesk/releases/download/1.4.4/rustdesk-1.4.4-x86_64.exe" -o rustdesk.exe
 
-REM Download the latest release executable
-curl -L "https://github.com/rustdesk/rustdesk/releases/download/%latest_release%/rustdesk-%latest_release%-x86_64.exe" -o rustdesk.exe
-
-REM Execute RustDesk installer silently
 rustdesk.exe --silent-install
 timeout /t 20
 
-REM Install the service (assuming this is for Windows)
 cd "C:\Program Files\RustDesk\"
 rustdesk.exe --install-service
 timeout /t 20
 
-REM Get RustDesk ID
 for /f "delims=" %%i in ('rustdesk.exe --get-id ^| more') do set rustdesk_id=%%i
 
-REM Set configuration and password
 rustdesk.exe --config %rustdesk_cfg%
+
 rustdesk.exe --password %rustdesk_pw%
+
 echo ...............................................
 REM Show the value of the ID Variable
 echo RustDesk ID: %rustdesk_id%
+
 REM Show the value of the Password Variable
 echo Password: %rustdesk_pw%
 echo ...............................................
+
 ```
 
 ## MSI Package installation 
@@ -289,90 +281,80 @@ echo "..............................................."
 
 ## macOS Bash
 
-```sh
+```
+# updated rustdesk install script for macOS 2025.11.24
 #!/bin/bash
 
 # Assign a random value to the password variable
-rustdesk_pw=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1)
+rustdesk_pw=$(LC_ALL=C tr -dc 'a-zA-Z0-9' </dev/urandom | head -c 8)
 
 # Get your config string from your Web portal and Fill Below
 rustdesk_cfg="configstring"
 
 ################################## Please Do Not Edit Below This Line #########################################
 
-# Check if the script is being run as root
+# Check if the script is being run as root (not required for most macOS installs, but warn if not)
 if [[ $EUID -ne 0 ]]; then
-    echo "This script must be run as root."
-    exit 1
+    echo "Warning: It's recommended to run this script with sudo for full permissions."
 fi
 
 # Identify OS
-if [ -f /etc/os-release ]; then
-    # freedesktop.org and systemd
-    . /etc/os-release
-    OS=$NAME
-    VER=$VERSION_ID
-
-    UPSTREAM_ID=${ID_LIKE,,}
-
-    # Fallback to ID_LIKE if ID was not 'ubuntu' or 'debian'
-    if [ "${UPSTREAM_ID}" != "debian" ] && [ "${UPSTREAM_ID}" != "ubuntu" ]; then
-        UPSTREAM_ID="$(echo ${ID_LIKE,,} | sed s/\"//g | cut -d' ' -f1)"
-    fi
-
-elif type lsb_release >/dev/null 2>&1; then
-    # linuxbase.org
-    OS=$(lsb_release -si)
-    VER=$(lsb_release -sr)
-elif [ -f /etc/lsb-release ]; then
-    # For some versions of Debian/Ubuntu without lsb_release command
-    . /etc/lsb-release
-    OS=$DISTRIB_ID
-    VER=$DISTRIB_RELEASE
-elif [ -f /etc/debian_version ]; then
-    # Older Debian, Ubuntu, etc.
-    OS=Debian
-    VER=$(cat /etc/debian_version)
-elif [ -f /etc/SuSE-release ]; then
-    # Older SuSE etc.
-    OS=SuSE
-    VER=$(cat /etc/SuSE-release)
-elif [ -f /etc/redhat-release ]; then
-    # Older Red Hat, CentOS, etc.
-    OS=RedHat
-    VER=$(cat /etc/redhat-release)
-else
-    # Fall back to uname, e.g. "Linux <version>", also works for BSD, etc.
-    OS=$(uname -s)
-    VER=$(uname -r)
+OS=$(uname -s)
+if [ "$OS" != "Darwin" ]; then
+    echo "This script is intended for macOS (Darwin)."
+    exit 1
 fi
 
-# Install RustDesk
+# Check for Homebrew and install if missing
+if ! command -v brew &>/dev/null; then
+    echo "Homebrew not found. Installing Homebrew..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+fi
 
-echo "Installing RustDesk"
-if [ "${ID}" = "debian" ] || [ "$OS" = "Ubuntu" ] || [ "$OS" = "Debian" ] || [ "${UPSTREAM_ID}" = "ubuntu" ] || [ "${UPSTREAM_ID}" = "debian" ]; then
-    wget https://github.com/rustdesk/rustdesk/releases/download/1.2.6/rustdesk-1.2.6-x86_64.deb
-    apt-get install -fy ./rustdesk-1.2.6-x86_64.deb > null
-elif [ "$OS" = "CentOS" ] || [ "$OS" = "RedHat" ] || [ "$OS" = "Fedora Linux" ] || [ "${UPSTREAM_ID}" = "rhel" ] || [ "$OS" = "Almalinux" ] || [ "$OS" = "Rocky*" ] ; then
-    wget https://github.com/rustdesk/rustdesk/releases/download/1.2.6/rustdesk-1.2.6-0.x86_64.rpm
-    yum localinstall ./rustdesk-1.2.6-0.x86_64.rpm -y > null
+# Install RustDesk via Homebrew if available, else download from GitHub
+if brew search --cask rustdesk | grep -q "^rustdesk\$"; then
+    echo "Installing RustDesk via Homebrew..."
+    brew install --cask rustdesk
 else
-    echo "Unsupported OS"
-    # here you could ask the user for permission to try and install anyway
-    # if they say yes, then do the install
-    # if they say no, exit the script
+    echo "Downloading RustDesk for macOS from GitHub..."
+    latest_url=$(curl -s https://api.github.com/repos/rustdesk/rustdesk/releases/latest | grep "browser_download_url.*dmg" | cut -d '"' -f 4 | grep -i "universal")
+    if [ -z "$latest_url" ]; then
+        latest_url=$(curl -s https://api.github.com/repos/rustdesk/rustdesk/releases/latest | grep "browser_download_url.*dmg" | cut -d '"' -f 4 | head -n 1)
+    fi
+    curl -L -o rustdesk-latest.dmg "$latest_url"
+    echo "Mounting DMG and installing..."
+    hdiutil attach rustdesk-latest.dmg
+    cp -R /Volumes/RustDesk*/RustDesk.app /Applications/
+    hdiutil detach /Volumes/RustDesk*
+    rm rustdesk-latest.dmg
+fi
+
+# Wait for RustDesk to be available
+sleep 2
+
+# Get RustDesk binary path
+RUSTDESK_BIN="/Applications/RustDesk.app/Contents/MacOS/rustdesk"
+if [ ! -x "$RUSTDESK_BIN" ]; then
+    RUSTDESK_BIN=$(mdfind "kMDItemCFBundleIdentifier == 'com.rustdesk.RustDesk'" | head -n 1)/Contents/MacOS/rustdesk
+fi
+
+if [ ! -x "$RUSTDESK_BIN" ]; then
+    echo "RustDesk binary not found. Please check installation."
     exit 1
 fi
 
 # Run the rustdesk command with --get-id and store the output in the rustdesk_id variable
-rustdesk_id=$(rustdesk --get-id)
+rustdesk_id=$("$RUSTDESK_BIN" --get-id 2>/dev/null)
 
 # Apply new password to RustDesk
-rustdesk --password $rustdesk_pw &> /dev/null
+"$RUSTDESK_BIN" --password "$rustdesk_pw" &>/dev/null
 
-rustdesk --config $rustdesk_cfg
+# Apply config if needed (may require additional steps depending on config method)
+"$RUSTDESK_BIN" --config "$rustdesk_cfg" &>/dev/null
 
-systemctl restart rustdesk
+# Restart RustDesk (kill and relaunch)
+pkill -f "RustDesk.app"
+open -a "RustDesk"
 
 echo "..............................................."
 # Check if the rustdesk_id is not empty
